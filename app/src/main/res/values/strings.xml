@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">VS_fabischn_Webservices</string>
+    <string name="rest_client">REST client</string>
+    <string name="soap_client">SOAP client</string>
+    <string name="rest_server">REST server</string>
+    <string name="no_data">No Data</string>
+    <string name="send_request">Send REST Request</string>
+</resources>
