@@ -10,6 +10,9 @@ import ch.ethz.inf.vs.a2.fabischn.webservices.http.RemoteServerConfiguration;
  */
 
 public class HttpRawRequestImpl implements HttpRawRequest, RemoteServerConfiguration {
+
+
+    // fabischn: Reverse engineered from Unit Tests and HTTP RFC
     private static final String CRLF= "\r\n";
     @Override
     public String generateRequest(String host, int port, String path) {

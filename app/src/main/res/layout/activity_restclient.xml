@@ -10,13 +10,25 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="ch.ethz.inf.vs.a2.fabischn.webservices.RESTClientActivity">
-    <Button android:id="@+id/btn_rest_request"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/send_request"
-        android:onClick="onClick"/>
-    <TextView android:id="@+id/text_restclient_temp"
+    <TextView android:id="@+id/text_restclient_data"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/no_data"/>
+    <Button android:id="@+id/btn_rest_request_raw"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/send_request_raw"
+        android:onClick="onClick"/>
+    <Button android:id="@+id/btn_rest_request_plain"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/send_request_plain"
+        android:onClick="onClick"/>
+    <Button android:id="@+id/btn_rest_request_json"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/send_request_json"
+        android:onClick="onClick"/>
+
+
 </LinearLayout>

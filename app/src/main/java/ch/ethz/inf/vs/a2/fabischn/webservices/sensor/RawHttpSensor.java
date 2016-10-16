@@ -1,6 +1,12 @@
 package ch.ethz.inf.vs.a2.fabischn.webservices.sensor;
 
+import android.text.Html;
 import android.util.Log;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -26,7 +32,8 @@ public class RawHttpSensor extends AbstractSensor {
     }
 
     @Override
-    public String executeRequest() throws IOException{
+    public String executeRequest() throws Exception{
+        // fabischn: How to use JAVA Socket API:
         // http://stackoverflow.com/questions/10673684/send-http-request-manually-via-socket
         Socket socket = null;
         BufferedReader bufferedReader = null;
@@ -37,13 +44,12 @@ public class RawHttpSensor extends AbstractSensor {
         printWriter.write(httpRawRequest.generateRequest(RemoteServerConfiguration.HOST, RemoteServerConfiguration.REST_PORT, "/sunspots/Spot1/sensors/temperature").toCharArray());
         printWriter.flush();
             bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            StringBuilder stringBuilder = new StringBuilder();
+            StringBuffer buffer = new StringBuffer();
             String line;
             while ((line = bufferedReader.readLine()) != null) {
-                stringBuilder.append(line);
+                buffer.append(line);
             }
-            response = stringBuilder.toString();
-            Log.d(TAG, response);
+            response = buffer.toString();
         } catch(IOException e) {
             throw e;
 
@@ -63,9 +69,17 @@ public class RawHttpSensor extends AbstractSensor {
     public double parseResponse(String response) {
         if (response != null){
 
-            return 1;
+            //fabischn: Using Jsoup library for HTML parsing
+            Document html = Jsoup.parse(response);
+            Elements elements = html.getElementsByClass("getterValue");
+            Element element = elements.first();
+            if (element != null) {
+                return Double.parseDouble(element.html());
+            } else{
+                return Double.NEGATIVE_INFINITY;
+            }
         } else {
-            return 0;
+            return Double.NEGATIVE_INFINITY;
         }
     }
 }
