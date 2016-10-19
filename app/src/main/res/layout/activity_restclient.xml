@@ -17,17 +17,17 @@
     <Button android:id="@+id/btn_rest_request_raw"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/send_request_raw"
+        android:text="@string/send_rest_request_raw"
         android:onClick="onClick"/>
     <Button android:id="@+id/btn_rest_request_plain"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/send_request_plain"
+        android:text="@string/send_rest_request_plain"
         android:onClick="onClick"/>
     <Button android:id="@+id/btn_rest_request_json"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/send_request_json"
+        android:text="@string/send_rest_request_json"
         android:onClick="onClick"/>
 
 

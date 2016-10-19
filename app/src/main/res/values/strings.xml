@@ -4,7 +4,9 @@
     <string name="soap_client">SOAP client</string>
     <string name="rest_server">REST server</string>
     <string name="no_data">No Data</string>
-    <string name="send_request_raw">Get HTML</string>
-    <string name="send_request_plain">Get Plaintext</string>
-    <string name="send_request_json">Get JSON</string>
+    <string name="send_rest_request_raw">Get HTML</string>
+    <string name="send_rest_request_plain">Get Plaintext</string>
+    <string name="send_rest_request_json">Get JSON</string>
+    <string name="send_soap_request_rawxml">Send by raw XML</string>
+    <string name="send_soap_request_soaplib">Send using ksoap2</string>
 </resources>

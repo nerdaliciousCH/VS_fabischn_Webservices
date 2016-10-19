@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/VS_fabischn_Webservices.iml" filepath="$PROJECT_DIR$/VS_fabischn_Webservices.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ksoap2-android-assembly-3.0.0-jar-with-dependencies/ksoap2-android-assembly-3.0.0-jar-with-dependencies.iml" filepath="$PROJECT_DIR$/ksoap2-android-assembly-3.0.0-jar-with-dependencies/ksoap2-android-assembly-3.0.0-jar-with-dependencies.iml" />
     </modules>
   </component>
 </project>

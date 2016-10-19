@@ -9,12 +9,14 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import ch.ethz.inf.vs.a2.fabischn.webservices.sensor.SensorListener;
+import ch.ethz.inf.vs.a2.fabischn.webservices.sensor.SoapSensor;
 import ch.ethz.inf.vs.a2.fabischn.webservices.sensor.XmlSensor;
 
 public class SOAPClientActivity extends AppCompatActivity implements SensorListener, Button.OnClickListener{
 
     private final static String TAG = SOAPClientActivity.class.getSimpleName();
     private XmlSensor xmlSensor;
+    private SoapSensor soapSensor;
     private TextView textView;
 
     @Override
@@ -25,7 +27,9 @@ public class SOAPClientActivity extends AppCompatActivity implements SensorListe
         textView = (TextView) findViewById(R.id.text_soapclient_data);
 
         xmlSensor = new XmlSensor();
+        soapSensor = new SoapSensor();
         xmlSensor.registerListener(this);
+        soapSensor.registerListener(this);
     }
 
     @Override
@@ -48,8 +52,11 @@ public class SOAPClientActivity extends AppCompatActivity implements SensorListe
     @Override
     public void onClick(View v) {
         switch (v.getId()){
-            case R.id.btn_soap_request:
+            case R.id.btn_soap_request_rawxml:
                 xmlSensor.getTemperature();
+                return;
+            case R.id.btn_soap_request_soaplib:
+                soapSensor.getTemperature();
                 return;
         }
     }

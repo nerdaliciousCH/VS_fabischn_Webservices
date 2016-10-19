@@ -12,9 +12,17 @@
     tools:context="ch.ethz.inf.vs.a2.fabischn.webservices.SOAPClientActivity">
     <TextView android:id="@+id/text_soapclient_data"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-<Button android:id="@+id/btn_soap_request"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:onClick="onClick"/>
+        android:layout_height="wrap_content"
+        android:text="@string/no_data"/>
+    <Button android:id="@+id/btn_soap_request_rawxml"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/send_soap_request_rawxml"
+        android:onClick="onClick"/>
+    <Button android:id="@+id/btn_soap_request_soaplib"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/send_soap_request_soaplib"
+        android:onClick="onClick"/>
+
 </LinearLayout>
