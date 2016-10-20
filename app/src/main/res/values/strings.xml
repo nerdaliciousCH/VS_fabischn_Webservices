@@ -9,4 +9,10 @@
     <string name="send_rest_request_json">Get JSON</string>
     <string name="send_soap_request_rawxml">Send by raw XML</string>
     <string name="send_soap_request_soaplib">Send using ksoap2</string>
+    <string name="no_ip">No IP Address assigned</string>
+    <string name="no_port">No TCP Port assigned</string>
+    <string name="enable_server">Enable Server</string>
+    <string name="disable_server">Disable Server</string>
+    <string name="server_down">Server is DOWN</string>
+    <string name="server_up">Server is UP</string>
 </resources>

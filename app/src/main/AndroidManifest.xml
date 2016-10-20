@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="ch.ethz.inf.vs.a2.fabischn.webservices">
+
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
@@ -16,13 +17,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".RESTClientActivity"
-            android:parentActivityName=".MainActivity"/>
-        <activity android:name=".SOAPClientActivity"
-            android:parentActivityName=".MainActivity"/>
-        <activity android:name=".RESTServerActivity"
-            android:parentActivityName=".MainActivity"/>
+        <activity
+            android:name=".RESTClientActivity"
+            android:parentActivityName=".MainActivity" />
+        <activity
+            android:name=".SOAPClientActivity"
+            android:parentActivityName=".MainActivity" />
+        <activity
+            android:name=".RESTServerActivity"
+            android:parentActivityName=".MainActivity" />
 
+        <service
+            android:name=".RESTService"
+            android:enabled="true"
+            android:exported="false"></service>
     </application>
 
 </manifest>

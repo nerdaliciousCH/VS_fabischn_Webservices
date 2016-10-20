@@ -2,6 +2,7 @@ package ch.ethz.inf.vs.a2.fabischn.webservices.sensor;
 
 import android.util.Log;
 
+import org.ksoap2.serialization.SoapObject;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
@@ -27,6 +28,7 @@ public class XmlSensor extends AbstractSensor {
 
     private static final String TAG = XmlSensor.class.getSimpleName();
 
+    // TODO defensive programming
     @Override
     public String executeRequest() throws Exception {
         HttpURLConnection urlConnection = null;
@@ -54,7 +56,7 @@ public class XmlSensor extends AbstractSensor {
         urlConnection.setRequestProperty("Content-Type", "text/xml; charset=utf-8"); //fabischn: Took me like 2 hours to find out, that not specifying this field causes the 404s :(
         urlConnection.setRequestProperty("Accept", "application/xml");
         urlConnection.setRequestProperty("Connection", "close");
-        urlConnection.setRequestProperty("SOAPAction", "");
+//        urlConnection.setRequestProperty("SOAPAction", "");
         DataOutputStream stream = new DataOutputStream(urlConnection.getOutputStream());
 
         stream.write(msg.getBytes());
@@ -68,8 +70,6 @@ public class XmlSensor extends AbstractSensor {
         while ((line = reader.readLine()) != null) {
             buffer.append(line);
         }
-        Log.d(TAG, buffer.toString());
-        // TODO safety and sanity checks
         return buffer.toString();
     }
 
@@ -78,7 +78,7 @@ public class XmlSensor extends AbstractSensor {
         // fabischn:
         // https://developer.android.com/reference/org/xmlpull/v1/XmlPullParser.html
         final String TAG_XML = "XML";
-        // TODO fabischn: continue parsing
+
         try {
             XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
             factory.setNamespaceAware(true);
@@ -86,23 +86,19 @@ public class XmlSensor extends AbstractSensor {
             xpp.setInput(new StringReader(response));
             int eventType = xpp.getEventType();
             while (eventType != XmlPullParser.END_DOCUMENT) {
-                if(eventType == XmlPullParser.START_DOCUMENT) {
-                    Log.d(TAG_XML, "Start document");
-                } else if(eventType == XmlPullParser.START_TAG) {
-                    Log.d(TAG_XML, "Start tag " + xpp.getName());
-                } else if(eventType == XmlPullParser.END_TAG) {
-                    Log.d(TAG_XML, "End tag " + xpp.getName());
-                } else if(eventType == XmlPullParser.TEXT) {
-                    Log.d(TAG_XML, "Text " + xpp.getText());
+                if (eventType == XmlPullParser.START_TAG && xpp.getName().equals("temperature")){
+                    xpp.next();
+                    // TODO defensive programming ...
+                    return Double.parseDouble(xpp.getText());
                 }
                 eventType = xpp.next();
             }
-            Log.d(TAG_XML, "End document");
         } catch (XmlPullParserException e) {
             Log.e(TAG, "Exploded while using XmlPullParser", e);
-        } catch (IOException e){
+        }
+        catch (IOException e){
             Log.e(TAG, "Exploded while trying to get some more XML", e);
         }
-        return 99;
+        return Double.NEGATIVE_INFINITY;
     }
 }
