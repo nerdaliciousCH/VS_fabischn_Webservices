@@ -22,10 +22,13 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/no_port"/>
-    <Button android:id="@+id/btn_toggle_rest_server"
+    <Button android:id="@+id/btn_toggle_server"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/enable_server"
         android:onClick="onClick"/>
+    <ListView android:id="@+id/listview_interfaces"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"></ListView>
 
 </LinearLayout>
