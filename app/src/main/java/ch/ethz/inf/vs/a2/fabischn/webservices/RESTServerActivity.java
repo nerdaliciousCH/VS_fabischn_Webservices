@@ -12,14 +12,16 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.util.Collections;
 import java.util.Enumeration;
 
 public class RESTServerActivity extends AppCompatActivity implements Button.OnClickListener{
 
     private static final String TAG = RESTServerActivity.class.getSimpleName();
-    private static final String NETWORK_INTERFACE = "lo";
+    private static final String NETWORK_INTERFACE = "lo"; //wlan0
     private RESTService service;
 
     private TextView textViewIP;
@@ -79,12 +81,21 @@ public class RESTServerActivity extends AppCompatActivity implements Button.OnCl
                     stopService(intent);
                     btnToggleServer.setText(getString(R.string.enable_server));
                     textViewStatus.setText(getString(R.string.server_down));
+                    textViewIP.setText(getString(R.string.no_ip));
                 } else {
-                    // TODO PendingIntent and getBroadcast to get IP and PORT?
+                    // TODO PendingIntent and getBroadcast to get (IP) and PORT?
                     intent.putExtra("interface", NETWORK_INTERFACE);
                     startService(new Intent(this, RESTService.class));
                     btnToggleServer.setText(getString(R.string.disable_server));
                     textViewStatus.setText(getString(R.string.server_up));
+
+
+                    // get ip address and set field
+                    for(InetAddress address : Collections.list(mNetworkInterface.getInetAddresses())) {
+                        String ipAddress = address.getHostAddress();
+                        // maybe checks needed
+                        textViewIP.setText(ipAddress);
+                    }
                 }
             } else {
                 Log.e(TAG, "Service object was null");
