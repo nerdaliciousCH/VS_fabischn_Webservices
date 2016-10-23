@@ -3,7 +3,6 @@ package ch.ethz.inf.vs.a2.fabischn.webservices;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Resources;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -21,7 +20,8 @@ import java.util.Enumeration;
 public class RESTServerActivity extends AppCompatActivity implements Button.OnClickListener{
 
     private static final String TAG = RESTServerActivity.class.getSimpleName();
-    private static final String NETWORK_INTERFACE = "lo"; //wlan0
+//    private static final String NETWORK_INTERFACE = "lo"; // loopback device for testing since there is no wlan0 in emulator
+    private static final String NETWORK_INTERFACE = "wlan0";
     private RESTService service;
 
     private TextView textViewIP;
@@ -30,9 +30,10 @@ public class RESTServerActivity extends AppCompatActivity implements Button.OnCl
 
     private Button btnToggleServer;
 
-    private ListView listViewInterfaces;
+//    private ListView listViewInterfaces;
 
     private NetworkInterface mNetworkInterface;
+    private InetAddress mNetworkInterfaceIP;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -47,7 +48,7 @@ public class RESTServerActivity extends AppCompatActivity implements Button.OnCl
 
         btnToggleServer = (Button) findViewById(R.id.btn_toggle_server);
 
-        listViewInterfaces = (ListView) findViewById(R.id.listview_interfaces);
+//        listViewInterfaces = (ListView) findViewById(R.id.listview_interfaces);
 //        listViewInterfaces.setAdapter();
 
         Enumeration<NetworkInterface> interfaces = null;
@@ -57,16 +58,20 @@ public class RESTServerActivity extends AppCompatActivity implements Button.OnCl
             Log.e(TAG, "Exploded trying to get network interfaces", e);
         }
         // TODO make interface selectable and pass it on to service
-        NetworkInterface netif = null;
+        NetworkInterface netif;
         mNetworkInterface = null;
         if (interfaces != null) {
-
             while(interfaces.hasMoreElements()){
                 netif = interfaces.nextElement();
+                Log.d(TAG, "IF: " + netif.getName() + " IP: " + netif.getInetAddresses().nextElement().toString());
                 if (netif.getName().equals(NETWORK_INTERFACE)){
+                    Log.d(TAG,"Found " + NETWORK_INTERFACE);
                     mNetworkInterface = netif;
                 }
             }
+        }
+        if(mNetworkInterface == null){
+            // TODO abort
         }
     }
 
@@ -89,13 +94,14 @@ public class RESTServerActivity extends AppCompatActivity implements Button.OnCl
                     btnToggleServer.setText(getString(R.string.disable_server));
                     textViewStatus.setText(getString(R.string.server_up));
 
-
                     // get ip address and set field
                     for(InetAddress address : Collections.list(mNetworkInterface.getInetAddresses())) {
                         String ipAddress = address.getHostAddress();
                         // maybe checks needed
                         textViewIP.setText(ipAddress);
                     }
+                    // TODO make port a parameter that gets passed to the Service
+                    textViewPort.setText("8088");
                 }
             } else {
                 Log.e(TAG, "Service object was null");
