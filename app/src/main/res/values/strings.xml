@@ -15,4 +15,5 @@
     <string name="disable_server">Disable Server</string>
     <string name="server_down">Server is DOWN</string>
     <string name="server_up">Server is UP</string>
+    <string name="no_networkint">No network interface found</string>
 </resources>

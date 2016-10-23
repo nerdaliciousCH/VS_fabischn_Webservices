@@ -73,6 +73,7 @@ public class RESTService extends Service implements SensorEventListener{
 
         mSensorManager.unregisterListener(this);
         // TODO free all resources? Shutdown threadpool
+
     }
 
     @Override
@@ -100,13 +101,17 @@ public class RESTService extends Service implements SensorEventListener{
         Log.d(TAG, "trying to register sensor");
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         // TODO why no temp?
+        // mSensorAmbient = mSensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE);
         mSensorTemp = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+
 
         // Run on non-main thread, otherwise NetworkOnMainThread exception
         Thread initThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
+                    // fdaniel: server doesnt restart because always at same port -> "address already in use"
+                    // fdaniel: maybe allow for port addresses to be reused? (http://stackoverflow.com/a/15026711)
                     mRestServer = new RESTServer(TCP_PORT, 10);
                     mRestServerThread = new Thread(mRestServer);
 //                    mRestServerThread.start();
@@ -222,7 +227,7 @@ class RESTRequestHandler implements Runnable {
             out = new PrintWriter(socket.getOutputStream(), true);
             out.write(Float.toString(temp));
         } catch (IOException e) {
-            Log.e(TAG, "Couldn't instatiate PrintWriter", e);
+            Log.e(TAG, "Couldn't instantiate PrintWriter", e);
         }finally {
             if (out != null){
                 out.close();

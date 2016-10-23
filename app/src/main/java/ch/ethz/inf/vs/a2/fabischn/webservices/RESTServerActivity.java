@@ -20,8 +20,8 @@ import java.util.Enumeration;
 public class RESTServerActivity extends AppCompatActivity implements Button.OnClickListener{
 
     private static final String TAG = RESTServerActivity.class.getSimpleName();
-//    private static final String NETWORK_INTERFACE = "lo"; // loopback device for testing since there is no wlan0 in emulator
-    private static final String NETWORK_INTERFACE = "wlan0";
+    private static final String NETWORK_INTERFACE = "lo"; // loopback device for testing since there is no wlan0 in emulator
+ //   private static final String NETWORK_INTERFACE = "wlan0";
     private RESTService service;
 
     private TextView textViewIP;
@@ -63,7 +63,8 @@ public class RESTServerActivity extends AppCompatActivity implements Button.OnCl
         if (interfaces != null) {
             while(interfaces.hasMoreElements()){
                 netif = interfaces.nextElement();
-                Log.d(TAG, "IF: " + netif.getName() + " IP: " + netif.getInetAddresses().nextElement().toString());
+                // fdaniel commented because emulator wont run otherwise
+                // Log.d(TAG, "IF: " + netif.getName() + " IP: " + netif.getInetAddresses().nextElement().toString());
                 if (netif.getName().equals(NETWORK_INTERFACE)){
                     Log.d(TAG,"Found " + NETWORK_INTERFACE);
                     mNetworkInterface = netif;
@@ -71,7 +72,7 @@ public class RESTServerActivity extends AppCompatActivity implements Button.OnCl
             }
         }
         if(mNetworkInterface == null){
-            // TODO abort
+            textViewStatus.setText(getString(R.string.no_networkint));
         }
     }
 
