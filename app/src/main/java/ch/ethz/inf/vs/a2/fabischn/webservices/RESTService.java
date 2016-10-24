@@ -113,12 +113,9 @@ public class RESTService extends Service implements SensorEventListener {
         mSensorAcceleration = mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
 
         mVibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-        // TODO take this out
-        mVibrator.vibrate(2000);
 
-        // TODO maybe this should be asynchronous?
+        // Assuming not too many concurrent requests
         mMediaPlayer = MediaPlayer.create(this, R.raw.sound);
-        mMediaPlayer.start();
 
         // Run on non-main thread, otherwise NetworkOnMainThread exception
         Thread initThread = new Thread(new Runnable() {
@@ -181,7 +178,6 @@ public class RESTService extends Service implements SensorEventListener {
 
     }
 
-    // TODO synchronize maybe work on PC Queue
     public static void vibrate(){
         long[] pattern = getVibrationPattern();
         synchronized (mVibrator) {
@@ -189,7 +185,6 @@ public class RESTService extends Service implements SensorEventListener {
         }
     }
 
-    // TODO synchronize maybe work on PC Queue
     public static void playSound(){
         synchronized (mMediaPlayer) {
             if (!mMediaPlayer.isPlaying()) {
@@ -306,7 +301,7 @@ class RESTRequestHandler implements Runnable {
     public void run() {
         // read and service request on socket
         String lineBuffer;
-        StringBuffer outBuffer = null;
+        StringBuffer outBuffer;
         BufferedReader htmlReader;
         PrintWriter out;
         try {
@@ -314,8 +309,8 @@ class RESTRequestHandler implements Runnable {
             int returnCode = content.parseRequest();
             String requestURL = content.getRequestURL();
             String acceptedResource = content.getHeader("accept");
-            String resourceLocation = null;
-            String sensorValue = "";
+            String resourceLocation;
+            String sensorValue = "no value";
             boolean requestedSensor = false;
 
             out = new PrintWriter(socket.getOutputStream(), true);
@@ -352,16 +347,16 @@ class RESTRequestHandler implements Runnable {
                         sensorValue = Arrays.toString(RESTService.getAcceleration());
                         break;
                     default:
-                        resourceLocation = "no";
+                        resourceLocation = "noresource.html";
                         break;
                 }
             } else if(acceptedResource.contains("json")) {
-                resourceLocation = "no";
+                resourceLocation = "notimplemented.json";
 
             } else if (acceptedResource.contains("xml")) {
-                resourceLocation = "no";
+                resourceLocation = "notimplemented.xml";
             } else {
-                resourceLocation = "no";
+                resourceLocation = "notsupported.html";
             }
 
             htmlReader = new BufferedReader(new InputStreamReader(context.getAssets().open(resourceLocation)));
