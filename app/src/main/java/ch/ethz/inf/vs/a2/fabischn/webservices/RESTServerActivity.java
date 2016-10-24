@@ -83,7 +83,7 @@ public class RESTServerActivity extends AppCompatActivity implements Button.OnCl
                     textViewStatus.setText(getString(R.string.server_down));
                     textViewIP.setText(getString(R.string.no_ip));
                 } else {
-                    createPendingResult(0, new Intent(), PendingIntent.FLAG_CANCEL_CURRENT);
+                    // TODO pending intent to get ip and port?
                     startService(new Intent(this, RESTService.class));
                     btnToggleServer.setText(getString(R.string.disable_server));
                     textViewStatus.setText(getString(R.string.server_up));
@@ -107,7 +107,6 @@ public class RESTServerActivity extends AppCompatActivity implements Button.OnCl
     private boolean isServiceRunning(Class<?> serviceClass,Context context){
         ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
         for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
-            Log.d(TAG, "Service running: " + service.service.getClassName());
             if (serviceClass.getName().equals(service.service.getClassName())) {
                 return true;
             }

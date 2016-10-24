@@ -70,11 +70,10 @@ public class RESTService extends Service implements SensorEventListener{
     public void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
-
         if (mRestServerThread != null){
-            // TODO stop accepting connections, kill threadpool
+            Log.d(TAG, "Thread still here. Shutting it down");
             mRestServer.stopAcceptingConnections();
-//            mRestServerThread.join();
+            Log.d(TAG, "Thread not accepting any connections");
         }
         mSensorManager.unregisterListener(this);
     }
@@ -125,8 +124,7 @@ public class RESTService extends Service implements SensorEventListener{
             mRestServerThread.start();
             Log.d(TAG,"Kicked off the server thread");
         } else{
-            // couldn't fire up server, so we gracefully retreat
-            Log.e(TAG, "Couldn't setup threads and serversockets");
+            Log.e(TAG, "Couldn't setup threads and server sockets");
             stopSelf(startId);
         }
         return super.onStartCommand(intent, flags, startId);
@@ -167,7 +165,6 @@ class RESTServer implements Runnable {
     public RESTServer(int port, int poolSize)
             throws IOException {
         acceptConnections = new AtomicBoolean(true);
-        // fdaniel: maybe allow for port addresses to be reused? (http://stackoverflow.com/a/15026711)
         serverSocket = new ServerSocket();
         serverSocket.setReuseAddress(true);
         serverSocket.bind(new InetSocketAddress(port),poolSize);
@@ -176,30 +173,36 @@ class RESTServer implements Runnable {
     }
 
     public void run() { // run the service
-        try {
             while (acceptConnections.get()) {
-                pool.execute(new RESTRequestHandler(serverSocket.accept()));
+                try {
+                    pool.execute(new RESTRequestHandler(serverSocket.accept()));
+                }catch (IOException e) {
+                    Log.e(TAG, "Couldn't handle request", e);
+                }
             }
-            shutdownThreadPool(pool);
-
-            // TODO continue here
-        } catch (IOException ex) {
-
+            Log.d(TAG, "Shutting down thread pool");
+            shutdownThreadPool();
         }
-    }
 
     public void stopAcceptingConnections(){
         acceptConnections.set(false);
+        Log.d(TAG, "Stopped accepting connections");
+        try {
+            serverSocket.close();
+        } catch (IOException e) {
+            Log.e(TAG, "Couldn't close server socket", e);
+        }
     }
 
-    void shutdownThreadPool(ExecutorService pool) {
+    void shutdownThreadPool() {
+        Log.d(TAG,"Thread pool shutdown initiated");
         pool.shutdown(); // Disable new tasks from being submitted
         try {
             // Wait a while for existing tasks to terminate
-            if (!pool.awaitTermination(10, TimeUnit.SECONDS)) {
+            if (!pool.awaitTermination(5, TimeUnit.SECONDS)) {
                 pool.shutdownNow(); // Cancel currently executing tasks
                 // Wait a while for tasks to respond to being cancelled
-                if (!pool.awaitTermination(10, TimeUnit.SECONDS))
+                if (!pool.awaitTermination(5, TimeUnit.SECONDS))
                     Log.e(TAG, "Pool did not terminate");
             }
         } catch (InterruptedException ie) {
@@ -208,6 +211,7 @@ class RESTServer implements Runnable {
             // Preserve interrupt status
             Thread.currentThread().interrupt();
         }
+        Log.d(TAG,"Thread pool shutdown complete");
     }
 
 }
@@ -235,6 +239,14 @@ class RESTRequestHandler implements Runnable {
 
         } catch (IOException e){
             Log.e(TAG, "Exploded trying to read from socket's input stream",e);
+        }finally {
+//            try {
+//                if(in != null) {
+//                    in.close();
+//                }
+//            } catch (IOException e) {
+//                Log.e(TAG, "Couldn't close BufferedReader and input streams");
+//            }
         }
 
         PrintWriter out = null;
