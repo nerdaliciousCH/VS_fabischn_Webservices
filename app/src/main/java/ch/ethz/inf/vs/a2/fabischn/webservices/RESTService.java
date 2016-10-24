@@ -6,22 +6,25 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.os.AsyncTask;
 import android.os.IBinder;
 import android.util.Log;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 // fabischn: Mostly from https://developer.android.com/guide/components/services.html#Basics
+// and https://developer.android.com/reference/java/util/concurrent/ExecutorService.html
 
 public class RESTService extends Service implements SensorEventListener{
 
@@ -31,9 +34,6 @@ public class RESTService extends Service implements SensorEventListener{
 
     private RESTServer mRestServer;
     private Thread mRestServerThread;
-
-    private InetAddress mServerSocketIP;
-    private int mServerSocketTcpPort = -1;
 
     private SensorManager mSensorManager;
     private Sensor mSensorTemp;
@@ -71,38 +71,32 @@ public class RESTService extends Service implements SensorEventListener{
         super.onDestroy();
         Log.d(TAG, "onDestroy");
 
+        if (mRestServerThread != null){
+            // TODO stop accepting connections, kill threadpool
+            mRestServer.stopAcceptingConnections();
+//            mRestServerThread.join();
+        }
         mSensorManager.unregisterListener(this);
-        // TODO free all resources? Shutdown threadpool
-
     }
 
     @Override
     public IBinder onBind(Intent intent) {
         // Remark: this will be called when bindService() is called
-        // TODO: Return the communication channel to the service. Return null if no binding used
         Log.d(TAG, "onBind");
 //        throw new UnsupportedOperationException("Not yet implemented");
         return null;
     }
 
     @Override
-    public boolean onUnbind(Intent intent) {
-        return super.onUnbind(intent);
-    }
-
-    @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        // RemarkP startId can be used with stopSelf(startId) to manage concurrent start and stops
+        // Remark: startId can be used with stopSelf(startId) to manage concurrent start and stops
         // Remark: will be called when startService() is called
-        // Remark: Should call stopSelf() or stopService() if work is done. Not for us, this is done by UI button click
-        String netif = intent.getStringExtra("interface");
         Log.d(TAG, "onStartCommand");
 
         Log.d(TAG, "trying to register sensor");
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        // TODO why no temp?
-        // mSensorAmbient = mSensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE);
-        mSensorTemp = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+
+        mSensorTemp = mSensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE);
 
 
         // Run on non-main thread, otherwise NetworkOnMainThread exception
@@ -110,11 +104,8 @@ public class RESTService extends Service implements SensorEventListener{
             @Override
             public void run() {
                 try {
-                    // fdaniel: server doesnt restart because always at same port -> "address already in use"
-                    // fdaniel: maybe allow for port addresses to be reused? (http://stackoverflow.com/a/15026711)
                     mRestServer = new RESTServer(TCP_PORT, 10);
                     mRestServerThread = new Thread(mRestServer);
-//                    mRestServerThread.start();
                 } catch (IOException e) {
                     Log.e(TAG, "Exploded trying to fire up server", e);
                 }
@@ -126,6 +117,7 @@ public class RESTService extends Service implements SensorEventListener{
             initThread.join();
         } catch (InterruptedException e) {
             Log.e(TAG, "Got interrupted while initializing thread was running", e);
+            stopSelf(startId);
         }
 
         if (mRestServerThread != null){
@@ -170,32 +162,44 @@ class RESTServer implements Runnable {
     private final ServerSocket serverSocket;
     private final ExecutorService pool;
 
+    AtomicBoolean acceptConnections;
+
     public RESTServer(int port, int poolSize)
             throws IOException {
-        // TODO no IP...hmm why?
-        serverSocket = new ServerSocket(port, poolSize+2);
+        acceptConnections = new AtomicBoolean(true);
+        // fdaniel: maybe allow for port addresses to be reused? (http://stackoverflow.com/a/15026711)
+        serverSocket = new ServerSocket();
+        serverSocket.setReuseAddress(true);
+        serverSocket.bind(new InetSocketAddress(port),poolSize);
         Log.d(TAG, "Up and running on" + serverSocket.toString());
         pool = Executors.newFixedThreadPool(poolSize);
     }
 
     public void run() { // run the service
         try {
-            for (;;) {
+            while (acceptConnections.get()) {
                 pool.execute(new RESTRequestHandler(serverSocket.accept()));
             }
+            shutdownThreadPool(pool);
+
+            // TODO continue here
         } catch (IOException ex) {
-            pool.shutdown();
+
         }
     }
 
-    void shutdownAndAwaitTermination(ExecutorService pool) {
+    public void stopAcceptingConnections(){
+        acceptConnections.set(false);
+    }
+
+    void shutdownThreadPool(ExecutorService pool) {
         pool.shutdown(); // Disable new tasks from being submitted
         try {
             // Wait a while for existing tasks to terminate
-            if (!pool.awaitTermination(60, TimeUnit.SECONDS)) {
+            if (!pool.awaitTermination(10, TimeUnit.SECONDS)) {
                 pool.shutdownNow(); // Cancel currently executing tasks
                 // Wait a while for tasks to respond to being cancelled
-                if (!pool.awaitTermination(60, TimeUnit.SECONDS))
+                if (!pool.awaitTermination(10, TimeUnit.SECONDS))
                     Log.e(TAG, "Pool did not terminate");
             }
         } catch (InterruptedException ie) {
@@ -205,6 +209,7 @@ class RESTServer implements Runnable {
             Thread.currentThread().interrupt();
         }
     }
+
 }
 
 //fabischn: https://developer.android.com/reference/java/util/concurrent/ExecutorService.html
@@ -221,11 +226,22 @@ class RESTRequestHandler implements Runnable {
     public void run() {
         // read and service request on socket
         // TODO parse the request and respond
-        float temp = RESTService.getTemp();
+        BufferedReader in = null;
+        try {
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            if (in != null){
+                Log.d(TAG,"We read following first line: " + in.readLine());
+            }
+
+        } catch (IOException e){
+            Log.e(TAG, "Exploded trying to read from socket's input stream",e);
+        }
+
         PrintWriter out = null;
         try{
             out = new PrintWriter(socket.getOutputStream(), true);
-            out.write(Float.toString(temp));
+            out.write(Float.toString(RESTService.getTemp()));
+            out.flush();
         } catch (IOException e) {
             Log.e(TAG, "Couldn't instantiate PrintWriter", e);
         }finally {

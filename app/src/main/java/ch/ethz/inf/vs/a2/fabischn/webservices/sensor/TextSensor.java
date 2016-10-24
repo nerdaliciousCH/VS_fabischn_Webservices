@@ -28,7 +28,7 @@ public class TextSensor extends AbstractSensor {
                 RemoteServerConfiguration.REST_PORT,
                 "/sunspots/Spot1/sensors/temperature");
 
-
+        // TODO try catch
         urlConnection = (HttpURLConnection) url.openConnection();
         urlConnection.setRequestMethod("GET");
         urlConnection.setRequestProperty("Accept", "text/plain");
@@ -43,13 +43,14 @@ public class TextSensor extends AbstractSensor {
         while ((line = reader.readLine()) != null) {
             buffer.append(line);
         }
-        // TODO safety and sanity checks
+        reader.close();
+        inputStream.close();
+        urlConnection.disconnect();
         return buffer.toString();
     }
 
     @Override
     public double parseResponse(String response) {
-        // TODO safety and sanity checks
         return Double.parseDouble(response);
     }
 }

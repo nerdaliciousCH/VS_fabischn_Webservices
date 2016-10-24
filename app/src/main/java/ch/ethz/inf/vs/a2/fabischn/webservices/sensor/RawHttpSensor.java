@@ -36,26 +36,30 @@ public class RawHttpSensor extends AbstractSensor {
         // fabischn: How to use JAVA Socket API:
         // http://stackoverflow.com/questions/10673684/send-http-request-manually-via-socket
         Socket socket = null;
+        PrintWriter printWriter = null;
         BufferedReader bufferedReader = null;
         String response = null;
         try{
          socket = new Socket(RemoteServerConfiguration.HOST, RemoteServerConfiguration.REST_PORT);
-        PrintWriter printWriter = new PrintWriter(socket.getOutputStream());
+        printWriter = new PrintWriter(socket.getOutputStream());
         printWriter.write(httpRawRequest.generateRequest(RemoteServerConfiguration.HOST, RemoteServerConfiguration.REST_PORT, "/sunspots/Spot1/sensors/temperature").toCharArray());
         printWriter.flush();
-            bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            StringBuffer buffer = new StringBuffer();
-            String line;
-            while ((line = bufferedReader.readLine()) != null) {
-                buffer.append(line);
-            }
-            response = buffer.toString();
+        bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        StringBuffer buffer = new StringBuffer();
+        String line;
+        while ((line = bufferedReader.readLine()) != null) {
+            buffer.append(line);
+        }
+        response = buffer.toString();
         } catch(IOException e) {
             throw e;
 
         } finally{
             if (bufferedReader != null) {
                 bufferedReader.close();
+            }
+            if(printWriter != null){
+                printWriter.close();
             }
             if (socket != null) {
                 socket.close();

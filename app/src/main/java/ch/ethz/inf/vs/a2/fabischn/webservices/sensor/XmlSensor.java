@@ -56,11 +56,10 @@ public class XmlSensor extends AbstractSensor {
         urlConnection.setRequestProperty("Content-Type", "text/xml; charset=utf-8"); //fabischn: Took me like 2 hours to find out, that not specifying this field causes the 404s :(
         urlConnection.setRequestProperty("Accept", "application/xml");
         urlConnection.setRequestProperty("Connection", "close");
-//        urlConnection.setRequestProperty("SOAPAction", "");
         DataOutputStream stream = new DataOutputStream(urlConnection.getOutputStream());
 
         stream.write(msg.getBytes());
-//        stream.flush();
+        stream.flush();
         stream.close();
 
         InputStream inputStream = urlConnection.getInputStream();
@@ -70,6 +69,10 @@ public class XmlSensor extends AbstractSensor {
         while ((line = reader.readLine()) != null) {
             buffer.append(line);
         }
+
+        reader.close();
+        inputStream.close();
+        urlConnection.disconnect();
         return buffer.toString();
     }
 

@@ -51,6 +51,7 @@ public class SoapSensor extends AbstractSensor {
             SoapObject res = (SoapObject) envl.bodyIn;
             res = (SoapObject) res.getProperty("return");
             String response = res.getPropertyAsString("temperature");
+            // TODO must HttpTransportSE be closed?
             return response;
         }
         return null;

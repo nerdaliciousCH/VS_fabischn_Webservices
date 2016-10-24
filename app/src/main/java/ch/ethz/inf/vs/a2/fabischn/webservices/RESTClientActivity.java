@@ -29,9 +29,8 @@ public class RESTClientActivity extends AppCompatActivity implements SensorListe
         rawHttpSensor = new RawHttpSensor();
         textSensor = new TextSensor();
         jsonSensor = new JsonSensor();
-        // TODO use a dropdown to select the Request method
-//        rawHttpSensor.registerListener(this);
-//        textSensor.registerListener(this);
+        rawHttpSensor.registerListener(this);
+        textSensor.registerListener(this);
         jsonSensor.registerListener(this);
     }
 

@@ -47,7 +47,9 @@ public class JsonSensor extends AbstractSensor {
         while ((line = reader.readLine()) != null) {
             buffer.append(line);
         }
-        // TODO safety and sanity checks
+        reader.close();
+        inputStream.close();
+        urlConnection.disconnect();
         return buffer.toString();
     }
 
