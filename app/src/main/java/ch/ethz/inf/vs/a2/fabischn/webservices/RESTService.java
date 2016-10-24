@@ -13,7 +13,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -26,20 +25,25 @@ import java.util.concurrent.atomic.AtomicBoolean;
 // fabischn: Mostly from https://developer.android.com/guide/components/services.html#Basics
 // and https://developer.android.com/reference/java/util/concurrent/ExecutorService.html
 
-public class RESTService extends Service implements SensorEventListener{
+public class RESTService extends Service implements SensorEventListener {
 
     private static final String TAG = RESTService.class.getSimpleName();
 
     private static final int TCP_PORT = 8088;
+    private static final int VEC_SIZE = 3;
 
     private RESTServer mRestServer;
     private Thread mRestServerThread;
 
     private SensorManager mSensorManager;
-    private Sensor mSensorTemp;
+    private Sensor mSensorGravity;
+    private Sensor mSensorAcceleration;
 
-    private static float mLastTemp;
-    private static Object mLockTemp = new Object();
+
+    private static float[] mLastGravity = new float[VEC_SIZE];
+    private static float[] mLastAcceleration = new float[VEC_SIZE];
+    private static Object mLockGravity = new Object();
+    private static Object mLockAcceleration = new Object();
 
 
 //  Caution: A service runs in the main thread of its hosting process—the service does not create
@@ -54,26 +58,21 @@ public class RESTService extends Service implements SensorEventListener{
 
     public RESTService() {
 
-        Log.d(TAG, "Constructor");
-
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.d(TAG, "onCreate");
         // Remark: This is once on creation and this will be executed before onStartCommand() or onBind()
+
 
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.d(TAG, "onDestroy");
-        if (mRestServerThread != null){
-            Log.d(TAG, "Thread still here. Shutting it down");
+        if (mRestServerThread != null) {
             mRestServer.stopAcceptingConnections();
-            Log.d(TAG, "Thread not accepting any connections");
         }
         mSensorManager.unregisterListener(this);
     }
@@ -81,8 +80,6 @@ public class RESTService extends Service implements SensorEventListener{
     @Override
     public IBinder onBind(Intent intent) {
         // Remark: this will be called when bindService() is called
-        Log.d(TAG, "onBind");
-//        throw new UnsupportedOperationException("Not yet implemented");
         return null;
     }
 
@@ -90,12 +87,11 @@ public class RESTService extends Service implements SensorEventListener{
     public int onStartCommand(Intent intent, int flags, int startId) {
         // Remark: startId can be used with stopSelf(startId) to manage concurrent start and stops
         // Remark: will be called when startService() is called
-        Log.d(TAG, "onStartCommand");
 
-        Log.d(TAG, "trying to register sensor");
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
 
-        mSensorTemp = mSensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE);
+        mSensorGravity = mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
+        mSensorAcceleration = mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
 
 
         // Run on non-main thread, otherwise NetworkOnMainThread exception
@@ -119,11 +115,11 @@ public class RESTService extends Service implements SensorEventListener{
             stopSelf(startId);
         }
 
-        if (mRestServerThread != null){
-            mSensorManager.registerListener(this, mSensorTemp, SensorManager.SENSOR_DELAY_UI);
+        if (mRestServerThread != null) {
+            mSensorManager.registerListener(this, mSensorGravity, SensorManager.SENSOR_DELAY_UI);
+            mSensorManager.registerListener(this, mSensorAcceleration, SensorManager.SENSOR_DELAY_UI);
             mRestServerThread.start();
-            Log.d(TAG,"Kicked off the server thread");
-        } else{
+        } else {
             Log.e(TAG, "Couldn't setup threads and server sockets");
             stopSelf(startId);
         }
@@ -132,9 +128,25 @@ public class RESTService extends Service implements SensorEventListener{
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        float temp = event.values[0];
-        synchronized (mLockTemp){
-            mLastTemp = temp;
+        switch (event.sensor.getType()) {
+            case Sensor.TYPE_GRAVITY:
+                synchronized (mLockGravity) {
+                    mLastGravity[0] = event.values[0];
+                    mLastGravity[1] = event.values[1];
+                    mLastGravity[2] = event.values[2];
+                }
+                return;
+
+            case Sensor.TYPE_LINEAR_ACCELERATION:
+                synchronized (mLockAcceleration) {
+                    mLastAcceleration[0] = event.values[0];
+                    mLastAcceleration[1] = event.values[1];
+                    mLastAcceleration[2] = event.values[2];
+                }
+                return;
+            default:
+                return;
+
         }
     }
 
@@ -143,10 +155,11 @@ public class RESTService extends Service implements SensorEventListener{
 
     }
 
-    public static float getTemp(){
-        synchronized (mLockTemp){
-            return mLastTemp;
+    public static float[] getGravity() {
+        synchronized (mLockGravity) {
+//            return float[3] values = {mLastGravity[0],mLastGravity[1],mLastGravity[2]};
         }
+        return null;
     }
 }
 
@@ -168,7 +181,6 @@ class RESTServer implements Runnable {
         serverSocket = new ServerSocket();
         serverSocket.setReuseAddress(true);
         serverSocket.bind(new InetSocketAddress(port),poolSize);
-        Log.d(TAG, "Up and running on" + serverSocket.toString());
         pool = Executors.newFixedThreadPool(poolSize);
     }
 
@@ -180,13 +192,11 @@ class RESTServer implements Runnable {
                     Log.e(TAG, "Couldn't handle request", e);
                 }
             }
-            Log.d(TAG, "Shutting down thread pool");
             shutdownThreadPool();
         }
 
     public void stopAcceptingConnections(){
         acceptConnections.set(false);
-        Log.d(TAG, "Stopped accepting connections");
         try {
             serverSocket.close();
         } catch (IOException e) {
@@ -195,7 +205,6 @@ class RESTServer implements Runnable {
     }
 
     void shutdownThreadPool() {
-        Log.d(TAG,"Thread pool shutdown initiated");
         pool.shutdown(); // Disable new tasks from being submitted
         try {
             // Wait a while for existing tasks to terminate
@@ -211,12 +220,11 @@ class RESTServer implements Runnable {
             // Preserve interrupt status
             Thread.currentThread().interrupt();
         }
-        Log.d(TAG,"Thread pool shutdown complete");
     }
 
 }
 
-//fabischn: https://developer.android.com/reference/java/util/concurrent/ExecutorService.html
+// fabischn: https://developer.android.com/reference/java/util/concurrent/ExecutorService.html
 // Handles a request
 class RESTRequestHandler implements Runnable {
 
@@ -228,8 +236,8 @@ class RESTRequestHandler implements Runnable {
         Log.d(TAG, "Request handler instantiated for new client request: " + socket.toString());
     }
     public void run() {
+
         // read and service request on socket
-        // TODO parse the request and respond
         BufferedReader in = null;
         try {
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -252,7 +260,7 @@ class RESTRequestHandler implements Runnable {
         PrintWriter out = null;
         try{
             out = new PrintWriter(socket.getOutputStream(), true);
-            out.write(Float.toString(RESTService.getTemp()));
+            out.write("blubb");
             out.flush();
         } catch (IOException e) {
             Log.e(TAG, "Couldn't instantiate PrintWriter", e);
