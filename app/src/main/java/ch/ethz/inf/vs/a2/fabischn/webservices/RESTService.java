@@ -3,6 +3,7 @@ package ch.ethz.inf.vs.a2.fabischn.webservices;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -19,6 +20,8 @@ import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.Buffer;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.StringTokenizer;
@@ -115,14 +118,14 @@ public class RESTService extends Service implements SensorEventListener {
 
         // TODO maybe this should be asynchronous?
         mMediaPlayer = MediaPlayer.create(this, R.raw.sound);
-
+        mMediaPlayer.start();
 
         // Run on non-main thread, otherwise NetworkOnMainThread exception
         Thread initThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    mRestServer = new RESTServer(TCP_PORT, 10);
+                    mRestServer = new RESTServer(TCP_PORT, 10, getApplicationContext());
                     mRestServerThread = new Thread(mRestServer);
                 } catch (IOException e) {
                     Log.e(TAG, "Exploded trying to fire up server", e);
@@ -234,22 +237,24 @@ class RESTServer implements Runnable {
 
     private final ServerSocket serverSocket;
     private final ExecutorService pool;
+    private Context context;
 
     AtomicBoolean acceptConnections;
 
-    public RESTServer(int port, int poolSize)
+    public RESTServer(int port, int poolSize, Context context)
             throws IOException {
         acceptConnections = new AtomicBoolean(true);
         serverSocket = new ServerSocket();
         serverSocket.setReuseAddress(true);
         serverSocket.bind(new InetSocketAddress(port),poolSize);
         pool = Executors.newFixedThreadPool(poolSize);
+        this.context = context;
     }
 
     public void run() { // run the service
             while (acceptConnections.get()) {
                 try {
-                    pool.execute(new RESTRequestHandler(serverSocket.accept()));
+                    pool.execute(new RESTRequestHandler(serverSocket.accept(), context));
                 }catch (IOException e) {
                     Log.e(TAG, "Couldn't handle request", e);
                 }
@@ -293,64 +298,95 @@ class RESTRequestHandler implements Runnable {
     private static final String TAG = RESTRequestHandler.class.getSimpleName();
 
     private final Socket socket;
-    RESTRequestHandler(Socket socket) {
+    private Context context;
+    RESTRequestHandler(Socket socket, Context context) {
         this.socket = socket;
-        Log.d(TAG, "Request handler instantiated for new client request: " + socket.toString());
+        this.context = context;
     }
     public void run() {
-
         // read and service request on socket
-        BufferedReader in = null;
+        String lineBuffer;
+        StringBuffer outBuffer = null;
+        BufferedReader htmlReader;
+        PrintWriter out;
         try {
-            // in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            // if (in != null){
-            //    Log.d(TAG,"We read following first line: " + in.readLine());
-            // }
-            // fdaniel: parsing with lib
-            // TODO close socket after response
             HttpParser content = new HttpParser(socket.getInputStream());
             int returnCode = content.parseRequest();
-            String version = content.getVersion();
             String requestURL = content.getRequestURL();
             String acceptedResource = content.getHeader("accept");
+            String resourceLocation = null;
+            String sensorValue = "";
+            boolean requestedSensor = false;
+
+            out = new PrintWriter(socket.getOutputStream(), true);
 
             // case distinction by accept header field
             if(acceptedResource.contains("html")){
-
+                Log.d(TAG,"He wants an HTML");
+                switch (requestURL){
+                    case "/":
+                        resourceLocation = "index.html";
+                        break;
+                    case "/sensors.html":
+                        resourceLocation = "sensors.html";
+                        break;
+                    case "/actuators.html":
+                        resourceLocation = "actuators.html";
+                        break;
+                    case "/vibration.html":
+                        resourceLocation = "vibration.html";
+                        RESTService.vibrate();
+                        break;
+                    case "/sound.html":
+                        resourceLocation = "sound.html";
+                        RESTService.playSound();
+                        break;
+                    case "/gravity.html":
+                        resourceLocation = "gravity.html";
+                        requestedSensor = true;
+                        sensorValue = Arrays.toString(RESTService.getGravity());
+                        break;
+                    case "/acceleration.html":
+                        resourceLocation = "acceleration.html";
+                        requestedSensor = true;
+                        sensorValue = Arrays.toString(RESTService.getAcceleration());
+                        break;
+                    default:
+                        resourceLocation = "no";
+                        break;
+                }
             } else if(acceptedResource.contains("json")) {
+                resourceLocation = "no";
 
             } else if (acceptedResource.contains("xml")) {
-
+                resourceLocation = "no";
             } else {
-                // no data for you sir
+                resourceLocation = "no";
             }
-            Log.d(TAG, acceptedResource);
 
-          //  content.closeReader();
-
-        } catch (IOException e){
-            Log.e(TAG, "Exploded trying to read from socket's input stream",e);
-        }finally {
-//            try {
-//                if(in != null) {
-//                    in.close();
-//                }
-//            } catch (IOException e) {
-//                Log.e(TAG, "Couldn't close BufferedReader and input streams");
-//            }
-        }
-
-        PrintWriter out = null;
-        try{
-            out = new PrintWriter(socket.getOutputStream(), true);
-            out.write("blubb");
+            htmlReader = new BufferedReader(new InputStreamReader(context.getAssets().open(resourceLocation)));
+            outBuffer = new StringBuffer();
+            while((lineBuffer = htmlReader.readLine()) != null){
+                outBuffer.append(lineBuffer);
+            }
+            if (outBuffer != null) {
+                if(requestedSensor){
+                    outBuffer.insert(outBuffer.indexOf(":")+1, sensorValue);
+                }
+                out.write(outBuffer.toString());
+            }else{
+                out.write("nothing");
+            }
             out.flush();
-        } catch (IOException e) {
-            Log.e(TAG, "Couldn't instantiate PrintWriter", e);
+        } catch (IOException e){
+            Log.e(TAG, "Exploded trying to do some IO",e);
         }finally {
-            if (out != null){
-                out.close();
-            }
+
+        }
+        try {
+            socket.close();
+        } catch (IOException e) {
+            Log.e(TAG, "Exploded trying to close socket", e);
         }
     }
 }
