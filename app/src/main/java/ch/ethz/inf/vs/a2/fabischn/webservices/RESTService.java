@@ -16,6 +16,9 @@ import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.StringTokenizer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -250,6 +253,20 @@ class RESTRequestHandler implements Runnable {
             int returnCode = content.parseRequest();
             String version = content.getVersion();
             String requestURL = content.getRequestURL();
+            String acceptedResource = content.getHeader("accept");
+
+            // case distinction by accept header field
+            if(acceptedResource.contains("html")){
+
+            } else if(acceptedResource.contains("json")) {
+
+            } else if (acceptedResource.contains("xml")) {
+
+            } else {
+                // no data for you sir
+            }
+            Log.d(TAG, acceptedResource);
+
           //  content.closeReader();
 
         } catch (IOException e){
