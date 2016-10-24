@@ -243,7 +243,9 @@ class RESTRequestHandler implements Runnable {
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             if (in != null){
                 Log.d(TAG,"We read following first line: " + in.readLine());
+
             }
+
 
         } catch (IOException e){
             Log.e(TAG, "Exploded trying to read from socket's input stream",e);
