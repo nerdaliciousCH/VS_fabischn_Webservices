@@ -23,12 +23,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 
+import android.util.Log;
+
 import java.io.*;
 import java.util.*;
 import java.text.*;
 import java.net.URLDecoder;
 
 public class HttpParser {
+    private static final String TAG = HttpParser.class.getSimpleName();
     private static final String[][] HttpReplies = {{"100", "Continue"},
             {"101", "Switching Protocols"},
             {"200", "OK"},
@@ -246,5 +249,12 @@ public class HttpParser {
         ret = "Date: " + format.format(new Date()) + " GMT";
 
         return ret;
+    }
+    public  void closeReader(){
+        try{
+            reader.close();
+        }catch(IOException e){
+            Log.e(TAG,"close reader exception http parser",e);
+        }
     }
 }

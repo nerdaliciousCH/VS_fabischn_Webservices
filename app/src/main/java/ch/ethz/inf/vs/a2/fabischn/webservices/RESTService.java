@@ -240,12 +240,17 @@ class RESTRequestHandler implements Runnable {
         // read and service request on socket
         BufferedReader in = null;
         try {
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            if (in != null){
-                Log.d(TAG,"We read following first line: " + in.readLine());
-
-            }
-
+            // in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            // if (in != null){
+            //    Log.d(TAG,"We read following first line: " + in.readLine());
+            // }
+            // fdaniel: parsing with lib
+            // TODO close socket after response
+            HttpParser content = new HttpParser(socket.getInputStream());
+            int returnCode = content.parseRequest();
+            String version = content.getVersion();
+            String requestURL = content.getRequestURL();
+          //  content.closeReader();
 
         } catch (IOException e){
             Log.e(TAG, "Exploded trying to read from socket's input stream",e);
