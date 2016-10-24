@@ -1,12 +1,15 @@
 package ch.ethz.inf.vs.a2.fabischn.webservices;
 
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.media.MediaPlayer;
 import android.os.IBinder;
+import android.os.Vibrator;
 import android.util.Log;
 
 import java.io.BufferedReader;
@@ -31,6 +34,7 @@ public class RESTService extends Service implements SensorEventListener {
 
     private static final int TCP_PORT = 8088;
     private static final int VEC_SIZE = 3;
+    private static final int PATTERN_SIZE = 20;
 
     private RESTServer mRestServer;
     private Thread mRestServerThread;
@@ -39,11 +43,18 @@ public class RESTService extends Service implements SensorEventListener {
     private Sensor mSensorGravity;
     private Sensor mSensorAcceleration;
 
+    private static Vibrator mVibrator;
+    private static MediaPlayer mMediaPlayer;
+
 
     private static float[] mLastGravity = new float[VEC_SIZE];
     private static float[] mLastAcceleration = new float[VEC_SIZE];
+    // TODO change this
+    private static long[] mVibratorPattern = {0,100,100,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,0,100};
+
     private static Object mLockGravity = new Object();
     private static Object mLockAcceleration = new Object();
+    private static Object mLockVibratorPattern = new Object();
 
 
 //  Caution: A service runs in the main thread of its hosting process—the service does not create
@@ -75,6 +86,8 @@ public class RESTService extends Service implements SensorEventListener {
             mRestServer.stopAcceptingConnections();
         }
         mSensorManager.unregisterListener(this);
+        mVibrator.cancel();
+        mMediaPlayer.release();
     }
 
     @Override
@@ -92,6 +105,13 @@ public class RESTService extends Service implements SensorEventListener {
 
         mSensorGravity = mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
         mSensorAcceleration = mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+
+        mVibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        // TODO take this out
+        mVibrator.vibrate(2000);
+
+        // TODO maybe this should be asynchronous?
+        mMediaPlayer = MediaPlayer.create(this, R.raw.sound);
 
 
         // Run on non-main thread, otherwise NetworkOnMainThread exception
@@ -155,11 +175,50 @@ public class RESTService extends Service implements SensorEventListener {
 
     }
 
+    // TODO synchronize maybe work on PC Queue
+    public static void vibrate(){
+        long[] pattern = getVibrationPattern();
+        synchronized (mVibrator) {
+            mVibrator.vibrate(pattern, -1);
+        }
+    }
+
+    // TODO synchronize maybe work on PC Queue
+    public static void playSound(){
+        synchronized (mMediaPlayer) {
+            if (!mMediaPlayer.isPlaying()) {
+                mMediaPlayer.start();
+            }
+        }
+    }
+
+    public static void setVibratorPattern(final long[] newPattern){
+        if(newPattern != null){
+            synchronized (mLockVibratorPattern){
+                mVibratorPattern = newPattern.clone();
+            }
+        }
+        else{
+            // keep old pattern if newPattern is null
+        }
+    }
+
+    public static long[] getVibrationPattern(){
+        synchronized (mLockVibratorPattern){
+            return mVibratorPattern.clone();
+        }
+    }
+
     public static float[] getGravity() {
         synchronized (mLockGravity) {
-//            return float[3] values = {mLastGravity[0],mLastGravity[1],mLastGravity[2]};
+            return mLastGravity.clone();
         }
-        return null;
+    }
+
+    public static float[] getAcceleration(){
+        synchronized (mLockAcceleration){
+            return mLastAcceleration.clone();
+        }
     }
 }
 
